@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <title>WMS — Weather Monitoring System</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=IBM+Plex+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+
+<div class="wms-root">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+  <header class="wms-header">
+    <div class="wms-logo">
+      <div class="wms-logo-icon">⛈</div>
+      <div>
+        <div class="wms-title">WMS · Weather Monitor</div>
+        <div class="wms-subtitle">Environmental Telemetry Dashboard</div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="connection-badge">
+        <span class="connection-dot" id="conn-dot"></span>
+        <span id="conn-label">CONNECTING</span>
+      </div>
+      <div class="timestamp-display">
+        LAST UPDATE: <span id="last-update">—</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ MAIN ════════════════════════════════════════════════════════════════ -->
+  <main class="wms-main">
+
+    <!-- ── Status Banner ─────────────────────────────────────────────────── -->
+    <div class="status-banner status-normal" id="status-banner">
+      <div class="status-main-label">
+        <div class="status-icon-large" id="status-icon">🌤</div>
+        <div class="status-text-block">
+          <div class="stage-label" id="stage-label">INITIALISING</div>
+          <div class="stage-desc"  id="stage-desc">Awaiting first sensor reading…</div>
+        </div>
+      </div>
+
+      <div class="status-meta">
+        <div class="confidence-block">
+          <div class="confidence-label">ML Confidence</div>
+          <div class="confidence-value" id="confidence-val">—%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sensor Cards ───────────────────────────────────────────────────── -->
+    <div class="sensor-grid">
+
+      <!-- Temperature -->
+      <div class="sensor-card card-temp active">
+        <div class="sensor-card-header">
+          <span class="sensor-name">Temperature</span>
+          <span class="sensor-unit">°C</span>
+        </div>
+        <div class="sensor-value-large" id="temp-value" aria-live="polite">—</div>
+        <div style="font-size:0.65rem; color:var(--text-dim); margin-top:0.25rem;">DHT22 · GPIO 4</div>
+        <div class="sensor-bar-wrap">
+          <div class="sensor-bar-fill" id="temp-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Rain Level -->
+      <div class="sensor-card card-rain active">
+        <div class="sensor-card-header">
+          <span class="sensor-name">Rain Intensity</span>
+          <span class="sensor-unit">0–1023</span>
+        </div>
+        <div class="sensor-value-large" id="rain-value" aria-live="polite">—</div>
+        <div style="font-size:0.65rem; color:var(--text-dim); margin-top:0.25rem;">Analog · MCP3008 CH0</div>
+        <div class="sensor-bar-wrap">
+          <div class="sensor-bar-fill" id="rain-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Water Level -->
+      <div class="sensor-card card-water active">
+        <div class="sensor-card-header">
+          <span class="sensor-name">Water Level</span>
+          <span class="sensor-unit">Binary</span>
+        </div>
+        <div class="sensor-value-large" id="water-value" style="font-size:1.8rem; padding-top:0.5rem;" aria-live="polite">—</div>
+        <div style="font-size:0.65rem; color:var(--text-dim); margin-top:0.25rem;">Digital · GPIO 27</div>
+        <div class="sensor-bar-wrap">
+          <div class="sensor-bar-fill" id="water-bar" style="width:5%"></div>
+        </div>
+      </div>
+
+      <div class="sensor-card card-rain active">
+        <div class="sensor-card-header">
+          <span class="sensor-name">Soil Moisture (ADC)</span>
+          <span class="sensor-unit">0-4095</span>
+        </div>
+        <div class="sensor-value-large" id="soil-value" aria-live="polite">—</div>
+        <div style="font-size:0.65rem; color:var(--text-dim); margin-top:0.25rem;">GPIO 33 · threshold 2000</div>
+        <div class="sensor-bar-wrap">
+          <div class="sensor-bar-fill" id="soil-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Stage Indicator Row ────────────────────────────────────────────── -->
+    <div class="stage-row">
+
+      <!-- Stage 1 — Temperature -->
+      <div class="stage-card s1" id="stage1-card">
+        <div class="led-circle led-s1" id="led1"></div>
+        <div class="stage-info">
+          <div class="stage-num">Stage 01</div>
+          <div class="stage-name">Temperature Alert</div>
+          <div class="stage-desc-text">High temp &gt; 35 °C · LED1 (Amber)</div>
+        </div>
+        <span class="stage-badge inactive" id="stage1-badge">INACTIVE</span>
+      </div>
+
+      <!-- Stage 2 — Light Rain -->
+      <div class="stage-card s2" id="stage2-card">
+        <div class="led-circle led-s2" id="led2"></div>
+        <div class="stage-info">
+          <div class="stage-num">Stage 02</div>
+          <div class="stage-name">Light Rain</div>
+          <div class="stage-desc-text">Rain 300–699 · LED2 (Cyan)</div>
+        </div>
+        <span class="stage-badge inactive" id="stage2-badge">INACTIVE</span>
+      </div>
+
+      <!-- Stage 3 — Critical -->
+      <div class="stage-card s3" id="stage3-card">
+        <div class="led-circle led-s3" id="led3"></div>
+        <div class="stage-info">
+          <div class="stage-num">Stage 03</div>
+          <div class="stage-name">Critical Alert</div>
+          <div class="stage-desc-text">Heavy rain ≥ 700 or water detected · LED3 + Buzzer</div>
+        </div>
+        <span class="stage-badge inactive" id="stage3-badge">INACTIVE</span>
+      </div>
+
+    </div>
+
+    <!-- ── Bottom Row: Chart + Alerts ─────────────────────────────────────── -->
+    <div class="bottom-row">
+
+      <!-- Chart Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Sensor History · last 60 readings</span>
+          <div class="panel-ctrl">
+            <button class="chart-toggle active" data-series="temperature">🌡 Temp</button>
+            <button class="chart-toggle"        data-series="rain">🌧 Rain</button>
+          </div>
+        </div>
+        <div style="position:relative; height:220px;">
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Alerts Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Alert Log</span>
+        </div>
+
+        <!-- Buzzer Banner -->
+        <div class="buzzer-alert" id="buzzer-alert">
+          <span class="buzzer-icon">🔔</span>
+          <div>
+            <div class="buzzer-text">⚠ Buzzer Active</div>
+            <div class="buzzer-sub">Stage 3 critical condition triggered</div>
+          </div>
+        </div>
+
+        <!-- Alert List -->
+        <div class="alert-list" id="alert-list">
+          <div class="alert-empty">NO ALERTS IN SESSION</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Mini Stats ─────────────────────────────────────────────────────── -->
+    <div class="grid-2" style="max-width:400px;">
+      <div class="mini-stat">
+        <div class="mini-label">Data Source</div>
+        <div class="mini-val" id="source-tag">—</div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-label">Hardware Mode</div>
+        <div class="mini-val hardware-sim" id="hardware-badge">WAITING</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <div class="panel-header">
+        <span class="panel-title">Hardware Status and Relay Control</span>
+      </div>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:0.75rem;">
+        <span class="mini-label">Last hardware ping:</span>
+        <span id="hardware-ping">—</span>
+      </div>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:0.75rem;">
+        <label><input type="checkbox" id="relay1-toggle"> Relay 1 (Rain)</label>
+        <label><input type="checkbox" id="relay2-toggle"> Relay 2 (Soil)</label>
+        <label><input type="checkbox" id="relay3-toggle"> Relay 3 (Temp)</label>
+      </div>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <button id="relay-apply-btn" class="chart-toggle active">Apply Commands</button>
+        <span class="mini-label">Commanded:</span>
+        <span id="command-state" style="font-size:0.8rem; color:var(--text-dim);">—</span>
+      </div>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-top:0.6rem;">
+        <span class="mini-label">Reported:</span>
+        <span id="reported-state" style="font-size:0.8rem; color:var(--text-dim);">—</span>
+        <span class="mini-label">Match:</span>
+        <span id="mismatch-state" style="font-size:0.8rem; color:var(--green);">SYNCED</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══ FOOTER ══════════════════════════════════════════════════════════════ -->
+  <footer class="wms-footer">
+    <span class="footer-text">WEATHER MONITORING SYSTEM · IoT + AI DECISION ENGINE</span>
+    <span class="footer-text">TCP :9000 · HTTP :8080 · SSE /api/stream</span>
+  </footer>
+
+  <div class="token-modal" id="token-modal" role="dialog" aria-modal="true" aria-labelledby="token-modal-title" hidden>
+    <div class="token-modal-card">
+      <h2 id="token-modal-title">Authentication Required</h2>
+      <p>Paste a valid JWT token to connect dashboard APIs.</p>
+      <label for="token-input">JWT Token</label>
+      <textarea id="token-input" rows="4" placeholder="eyJhbGci..." autofocus></textarea>
+      <div class="token-modal-actions">
+        <button id="token-save-btn">Save Token</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

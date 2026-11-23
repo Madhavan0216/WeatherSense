@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install mypy pytest black ruff bandit
+
+      - name: Lint
+        run: |
+          black --check .
+          ruff check .
+          mypy --strict config.py interfaces.py contracts.py resilience.py observability.py repository.py service.py controller.py socket_server.py sensor_handler.py decision_engine.py alert_controller.py main.py train_model.py ml_pipeline.py
+          bandit -r .
+
+      - name: Compile
+        run: python -m py_compile *.py
+
+      - name: Test
+        run: |
+          if [ -d tests ]; then pytest -q; else echo "No tests directory"; fi
+
+      - name: Docker Build
+        run: docker build -t wms-ci:latest .

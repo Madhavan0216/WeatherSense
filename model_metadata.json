@@ -1,0 +1,39 @@
+{
+  "version": "20260406132236",
+  "trained_at": "2026-04-06T13:22:36.184747+00:00",
+  "cv_accuracy": {
+    "dt": 0.999,
+    "rf": 0.9998333333333334,
+    "best": "rf"
+  },
+  "feature_names": [
+    "temperature",
+    "rain_level",
+    "water_level_numeric"
+  ],
+  "training_distribution": {
+    "temperature": {
+      "mean": 31.55029334670932,
+      "std": 9.429617360854,
+      "min": 13.917485324932478,
+      "max": 50.849908795098486
+    },
+    "rain_level": {
+      "mean": 383.91583333333335,
+      "std": 304.7843226444899,
+      "min": 0.0,
+      "max": 1023.0
+    },
+    "water_level_numeric": {
+      "mean": 0.2846666666666667,
+      "std": 0.4512931417665497,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "labels": {
+    "0": "NORMAL",
+    "1": "WARNING",
+    "2": "CRITICAL"
+  }
+}
